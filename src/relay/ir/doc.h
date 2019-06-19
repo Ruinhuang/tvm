@@ -48,7 +48,8 @@ struct TextNode : DocAtomNode {
 
   explicit TextNode(const std::string& str) : str(str) {
     if (str.find_first_of("\t\n") != str.npos) {
-      LOG(WARNING) << "text node: '" << str << "' should not has tab or newline.";
+      LOG(FATAL) << "text node: '" << str << "' should not has tab or newline.";
+      throw;
     }
   }
 };
