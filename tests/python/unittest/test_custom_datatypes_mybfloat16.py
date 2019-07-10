@@ -21,10 +21,7 @@ import topi
 import tvm.ir_pass as ir_pass
 import numpy as np
 
-tgt = "llvm"
-
-
-def setup():
+def setup_module(module):
     # You must first load the library containing the datatype implementation.
     # In this case, we have built the test functions used below right into TVM.
     # CDLL("libmybfloat16.so", RTLD_GLOBAL)
