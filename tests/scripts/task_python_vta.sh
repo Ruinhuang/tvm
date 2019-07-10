@@ -28,7 +28,7 @@ rm -rf ~/.tvm
 make cython3
 
 echo "Running unittest..."
-python3 -m nose -v vta/tests/python/unittest
+python3 -m pytest -v vta/tests/python/unittest
 
 echo "Running integration test..."
-python3 -m nose -v vta/tests/python/integration
+python3 -m pytest -v vta/tests/python/integration
