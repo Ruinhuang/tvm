@@ -37,5 +37,10 @@ class Feature(IntEnum):
     fMatch = 14
     """ Whether any non-atom fragment of the program is shared, making the program a graph. """
     fGraph = 15
+    """
+    Whether any non-primitive non-atom fragment of the program is shared,
+    making the program a graph.
+    """
+    fCGraph = 16
     """ Whether there is local fixpoint in the program. """
-    fLetRec = 16
+    fLetRec = 17

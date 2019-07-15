@@ -34,17 +34,23 @@ namespace relay {
 
 FeatureSet DetectFeature(const Expr& expr) {
   if (!expr.defined()) {
-    return FeatureSet::NoFeature();
+    return FeatureSet::No();
   }
   struct FeatureDetector : ExprVisitor {
     std::unordered_set<Expr, NodeHash, NodeEqual> visited_;
-    FeatureSet fs = FeatureSet::NoFeature();
+    bool primitive_ = false;
+    FeatureSet fs = FeatureSet::No();
+
     void VisitExpr(const Expr& expr) final {
       if (visited_.count(expr) == 0) {
+        visited_.insert(expr);
         ExprVisitor::VisitExpr(expr);
       } else {
         if (!IsAtomic(expr)) {
           fs += fGraph;
+          if (!primitive_) {
+            fs += fCGraph;
+          }
         }
       }
     }
@@ -83,7 +89,7 @@ FeatureSet DetectFeature(const Expr& expr) {
 }
 
 FeatureSet DetectFeature(const Module& mod) {
-  FeatureSet fs = FeatureSet::NoFeature();
+  FeatureSet fs = FeatureSet::No();
   if (mod.defined()) {
     for (const auto& f : mod->functions) {
       fs += DetectFeature(f.second);

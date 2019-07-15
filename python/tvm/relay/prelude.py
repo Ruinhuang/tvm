@@ -239,7 +239,8 @@ class Prelude:
         self.zip = GlobalVar("zip")
         a = TypeVar("a")
         b = TypeVar("b")
-        nil_case = Clause(PatternConstructor(self.nil), self.nil())
+        inner_nil_case = Clause(PatternConstructor(self.nil), self.nil())
+        outer_nil_case = Clause(PatternConstructor(self.nil), self.nil())
         l1 = Var("l1")
         l2 = Var("l2")
         h1 = Var("h1")
@@ -249,8 +250,8 @@ class Prelude:
         inner_cons_case = Clause(PatternConstructor(self.cons, [PatternVar(h2), PatternVar(t2)]),
                                  self.cons(Tuple([h1, h2]), self.zip(t1, t2)))
         outer_cons_case = Clause(PatternConstructor(self.cons, [PatternVar(h1), PatternVar(t1)]),
-                                 Match(l2, [nil_case, inner_cons_case]))
-        self.mod[self.zip] = Function([l1, l2], Match(l1, [nil_case, outer_cons_case]),
+                                 Match(l2, [inner_nil_case, inner_cons_case]))
+        self.mod[self.zip] = Function([l1, l2], Match(l1, [outer_nil_case, outer_cons_case]),
                                       self.l(TupleType([a, b])), [a, b])
 
 

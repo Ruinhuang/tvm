@@ -50,11 +50,18 @@ enum Feature : int {
   fMatch = 14,
   /*! \brief Whether any non-atom fragment of the program is shared, making the program a graph. */
   fGraph = 15,
+  /*!
+   * \brief Whether any complex(non primitive) fragment of the program is shared,
+   * making the program a graph.
+   * This is different from fGraph in the sense that if graph is used only in primitive function,
+   * fCGraph is off while fGraph is on.
+   */
+  fCGraph = 16,
   /*! \brief Whether there is local fixpoint in the program. */
-  fLetRec = 16
+  fLetRec = 17
 };
 
-constexpr size_t feature_count = 17;
+constexpr size_t feature_count = 18;
 
 /*!
  * \brief A finite set of Feature.
@@ -81,13 +88,13 @@ class FeatureSet {
     return ret;
   }
   /*! \brief A set that contain all the Feature. */
-  static FeatureSet AllFeature() {
+  static FeatureSet All() {
     FeatureSet fs;
     fs.bs_.flip();
     return fs;
   }
   /*! \brief The empty set. Contain no Feature. */
-  static FeatureSet NoFeature() {
+  static FeatureSet No() {
     FeatureSet fs;
     return fs;
   }
