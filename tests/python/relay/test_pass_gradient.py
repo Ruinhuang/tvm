@@ -23,6 +23,7 @@ from tvm.relay import create_executor, transform
 from tvm.relay.transform import gradient
 from tvm.relay.prelude import Prelude
 from tvm.relay.testing import add_nat_definitions, make_nat_expr, run_infer_type
+from tvm.relay.testing import resnet, inception_v3, squeezenet, densenet, lstm
 
 
 def rand(dtype='float32', *shape):
@@ -191,10 +192,8 @@ def test_pow():
     double = relay.Function([x], x + x)
     i = relay.var("i", t)
     func = relay.Function([i], p.nat_iterate(double, make_nat_expr(p, 3))(i))
-    mod["main"] = func
-    mod["main"] = gradient(mod["main"], mod=mod)
-    m = transform.InferType()(mod)
-    back_func = m["main"]
+    mod["func"] = func
+    back_func = gradient(mod["func"], mod=mod)
     assert back_func.checked_type == relay.FuncType([t], relay.TupleType([t, relay.TupleType([t])]))
     i_nd = rand(dtype, *shape)
     ex = create_executor(mod=mod)
@@ -272,6 +271,28 @@ def test_grad_tuple():
     tvm.testing.assert_allclose(forward_four.asnumpy(), 4 * x.asnumpy())
     tvm.testing.assert_allclose(forward_two.asnumpy(), 2 * x.asnumpy())
     tvm.testing.assert_allclose(grad.asnumpy(), 4 * np.ones_like(x.asnumpy()))
+
+
+def rand_from_type(t):
+    assert isinstance(t, relay.ty.TensorType)
+    return rand(t.dtype, *[int(s) for s in t.shape])
+
+
+def test_dense():
+    x = relay.var("x", shape=(10, 5))
+    w = relay.var("w", shape=(2, 5))
+    z = relay.nn.dense(x, w)
+    func = relay.Function([x, w], z)
+    func = run_infer_type(func)
+    run_infer_type(gradient(func))
+
+
+def test_resnet():
+    x, _ = densenet.get_workload()
+    x = gradient(x["main"])
+    args = [rand_from_type(e.checked_type) for e in x.params]
+    ex = create_executor()
+    ex.evaluate(x)(*args)
 
 
 if __name__ == "__main__":

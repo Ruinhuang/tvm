@@ -1340,3 +1340,6 @@ def deformable_conv2d(data,
     return _make.deformable_conv2d(data, offset, weight, strides, padding, dilation,
                                    deformable_groups, groups, channels, kernel_size, data_layout,
                                    kernel_layout, out_layout, out_dtype)
+
+def cross_entropy(predictions, targets):
+    return _make.cross_entropy(predictions, targets)

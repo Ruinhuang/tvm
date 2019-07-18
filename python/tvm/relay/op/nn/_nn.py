@@ -548,3 +548,13 @@ def schedule_deformable_conv2d(attrs, outs, target):
 
 
 reg.register_pattern("nn.deformable_conv2d", OpPattern.OUT_ELEMWISE_FUSABLE)
+
+reg.register_schedule("nn.cross_entropy", schedule_injective)
+
+reg.register_pattern("nn.cross_entropy",
+                     OpPattern.OPAQUE)
+
+@reg.register_compute("nn.cross_entropy")
+def compute_cross_entropy(attrs, inputs, out_dtype, target):
+    x, y = inputs
+    return [-topi.sum(topi.nn.log_softmax(x) * y / x.shape[0])]

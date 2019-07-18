@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,7 +18,7 @@
  */
 
 /*!
- *  Copyright (c) 2018 by Contributors
+ *  Copyright (c) 2019 by Contributors
  * \file convolution.cc
  * \brief Convolution operators
  */
@@ -34,6 +34,21 @@ namespace relay {
 
 // relay.nn.conv2d
 TVM_REGISTER_NODE_TYPE(Conv2DAttrs);
+
+
+template<typename T>
+Array<Array<Layout> > Conv2DInferCorrectLayout(const Attrs& attrs,
+                                               const Array<Layout>& new_in_layouts,
+                                               const Array<Layout>& old_in_layouts,
+                                               const Array<Array<IndexExpr>> &old_in_shapes) {
+  const T* params = attrs.as<T>();
+
+  // We always make other operators to fit the layouts of convolution layers
+  // So this inference ignores all inputs
+  return Array<Array<Layout> >{{params->data_layout, params->kernel_layout},
+      {params->out_layout == "" ?
+          params->data_layout : params->out_layout}};
+}
 
 bool Conv2DRel(const Array<Type>& types,
                int num_inputs,
@@ -128,20 +143,6 @@ bool Conv2DRel(const Array<Type>& types,
   return true;
 }
 
-template<typename T>
-Array<Array<Layout> > Conv2DInferCorrectLayout(
-    const Attrs& attrs,
-    const Array<Layout>& new_in_layouts,
-    const Array<Layout>& old_in_layouts,
-    const Array<Array<IndexExpr>> &old_in_shapes) {
-  const T* params = attrs.as<T>();
-
-  // We always make other operators to fit the layouts of convolution layers
-  // So this inference ignores all inputs
-  return Array<Array<Layout> >{{params->data_layout, params->kernel_layout},
-                               {params->out_layout == "" ?
-                                   params->data_layout : params->out_layout}};
-}
 
 // Positional relay function to create conv2d operator
 // used by frontend FFI.
@@ -197,6 +198,63 @@ with the layer input to produce a tensor of outputs.
 .set_support_level(2)
 .add_type_rel("Conv2D", Conv2DRel)
 .set_attr<FInferCorrectLayout>("FInferCorrectLayout", Conv2DInferCorrectLayout<Conv2DAttrs>);
+
+
+
+bool Conv2DGradRel(const Array<Type>& types,
+                   int num_inputs,
+                   const Attrs& attrs,
+                   const TypeReporter& reporter) {
+  CHECK_EQ(types.size(), 4);
+  reporter->Assign(types[3], TupleTypeNode::make({types[0], types[1]}));
+  return Conv2DRel({types[0], types[1], types[2]}, num_inputs, attrs, reporter);
+}
+
+
+// Positional relay function to create conv2d_grad operator
+// used by frontend FFI.
+Expr MakeConv2DGrad(Expr data,
+                    Expr weight,
+                    Expr grad,
+                    Array<IndexExpr> strides,
+                    Array<IndexExpr> padding,
+                    Array<IndexExpr> dilation,
+                    int groups,
+                    IndexExpr channels,
+                    Array<IndexExpr> kernel_size,
+                    std::string data_layout,
+                    std::string kernel_layout,
+                    std::string out_layout,
+                    DataType out_dtype) {
+  auto attrs = make_node<Conv2DAttrs>();
+  attrs->strides = std::move(strides);
+  attrs->padding = std::move(padding);
+  attrs->dilation = std::move(dilation);
+  attrs->groups = groups;
+  attrs->channels = std::move(channels);
+  attrs->kernel_size = std::move(kernel_size);
+  attrs->data_layout = std::move(data_layout);
+  attrs->kernel_layout = std::move(kernel_layout);
+  attrs->out_layout = std::move(out_layout);
+  attrs->out_dtype = std::move(out_dtype);
+  static const Op& op = Op::Get("nn.conv2d_grad");
+  return CallNode::make(op, {data, weight, grad}, Attrs(attrs), {});
+}
+
+
+TVM_REGISTER_API("relay.op.nn._make.conv2d_grad")
+.set_body_typed(MakeConv2DGrad);
+
+
+RELAY_REGISTER_OP("nn.conv2d_grad")
+.describe(R"code(The gradient for conv2d.)code" TVM_ADD_FILELINE)
+.set_attrs_type_key("relay.attrs.Conv2DAttrs")
+.set_num_inputs(3)
+.add_argument("data", "Tensor", "The input tensor.")
+.add_argument("weight", "Tensor", "The weight t/ensor.")
+.add_argument("grad", "Tensor", "The grad tensor.")
+.set_support_level(2)
+.add_type_rel("Conv2DGrad", Conv2DGradRel);
 
 
 // relay.nn.conv2d_transpose
