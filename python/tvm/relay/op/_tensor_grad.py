@@ -99,31 +99,6 @@ def divide_grad(orig, grad):
             collapse_sum_like(- (grad * orig / y), y)]
 
 
-@register_gradient("zeros")
-def zeros_grad(orig, grad):
-    """Returns []"""
-    return []
-
-
-@register_gradient("ones")
-def ones_grad(orig, grad):
-    """Returns []"""
-    return []
-
-
-@register_gradient("zeros_like")
-def zeros_like_grad(orig, grad):
-    """Returns [0]"""
-    return [zeros_like(orig.args[0])]
-
-
-
-@register_gradient("ones_like")
-def ones_like_grad(orig, grad):
-    """Returns [0]"""
-    return [zeros_like(orig.args[0])]
-
-
 @register_gradient("collapse_sum_like")
 def collapse_sum_like_grad(orig, grad):
     """Returns [broadcast_to_like(grad, x), 0]"""
@@ -271,21 +246,29 @@ def conv2d_grad(orig, grad):
     return [a, b]
 
 
-@register_gradient("nn.max_pool2d")
-def max_pool2d_grad(orig, grad):
-    # focuse on conv2d rn.
-    return [orig.args[0]]
-
-
-@register_gradient("nn.avg_pool2d")
-def avg_pool2d_grad(orig, grad):
-    # focuse on conv2d rn.
-    return [orig.args[0]]
-
-
 @register_gradient("zeros")
 def zeros_grad(orig, grad):
+    """Returns []"""
     return []
+
+
+@register_gradient("ones")
+def ones_grad(orig, grad):
+    """Returns []"""
+    return []
+
+
+@register_gradient("zeros_like")
+def zeros_like_grad(orig, grad):
+    """Returns [0]"""
+    return [zeros_like(orig.args[0])]
+
+
+
+@register_gradient("ones_like")
+def ones_like_grad(orig, grad):
+    """Returns [0]"""
+    return [zeros_like(orig.args[0])]
 
 
 @register_gradient("split")

@@ -119,7 +119,8 @@ def test_reduce_op():
         x_data = np.random.randn(*s).astype(t.dtype)
         ref_grad = ref(x_data, axis)
         fwd_func = relay.Function([x], z)
-        bwd_func = infer_type(gradient(fwd_func))
+        fwd_func = run_infer_type(fwd_func)
+        bwd_func = run_infer_type(gradient(fwd_func))
 
         for target, ctx in ctx_list():
             intrp = relay.create_executor(ctx=ctx, target=target)
