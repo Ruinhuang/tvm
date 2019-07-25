@@ -283,6 +283,6 @@ def cross_entropy_grad(orig, grad):
     x, y = orig.args
     sm = softmax(x)
     shape = shape_of(x)
-    batch_size = take(shape, relay.const(0, dtype='int32'), axis=0)
+    batch_size = take(shape, const(0, dtype='int32'), axis=0)
     grad = grad / batch_size.astype('float32')
     return [reduce_sum(y, axis=1) * grad * (sm - y), -grad * log(sm)]
