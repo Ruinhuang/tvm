@@ -17,14 +17,15 @@
 #pylint: disable=invalid-name, unused-argument
 """Backend compiler related feature registration"""
 from __future__ import absolute_import
-from ..expr import const
+from ..expr import const, Call, TupleWrapper
+from .op import get as op_get
 from .op import register_gradient
-import tvm.relay as relay
-import tvm.relay.op as op
+from .nn import dense, softmax
 from .transform import collapse_sum_like, broadcast_to_like, reshape_like, cast_like
-from .transform import where, transpose
-from .tensor import exp, negative, power, less, equal, divide
+from .transform import where, transpose, take
+from .tensor import exp, negative, power, less, equal, divide, log
 from .tensor import zeros_like, ones_like
+from .tensor import shape_of
 from .reduce import sum as reduce_sum
 from . import nn as _nn
 
@@ -179,8 +180,8 @@ def negative_grad(orig, grad):
 def dense_grad(orig, grad):
     # todo: check attrs
     data, weight = orig.args
-    return [collapse_sum_like(op.nn.dense(grad, transpose(weight)), data),
-            collapse_sum_like(transpose(op.nn.dense(transpose(data), transpose(grad))), weight)]
+    return [collapse_sum_like(dense(grad, transpose(weight)), data),
+            collapse_sum_like(transpose(dense(transpose(data), transpose(grad))), weight)]
 
 
 # UNTESTED
@@ -200,8 +201,8 @@ def reshape_grad(orig, grad):
 @register_gradient("take")
 def take_grad(orig, grad):
     x, y = orig.args
-    return [relay.zeros_like(x), relay.zeros_like(y)]
-    return [relay.Call(op.get("take_grad"), [x, y, grad], orig.attrs), zeros_like(y)]
+    return [zeros_like(x), zeros_like(y)]
+    return [Call(op_get("take_grad"), [x, y, grad], orig.attrs), zeros_like(y)]
 
 
 @register_gradient("shape_of")
@@ -242,7 +243,7 @@ def batch_norm_grad(orig, grad):
 @register_gradient("nn.conv2d")
 def conv2d_grad(orig, grad):
     a, b = orig.args
-    x, y = relay.TupleWrapper(relay.Call(op.get("nn.conv2d_grad"), [a, b, grad], orig.attrs), 2)
+    x, y = TupleWrapper(Call(op_get("nn.conv2d_grad"), [a, b, grad], orig.attrs), 2)
     return [a, b]
 
 
@@ -280,8 +281,8 @@ def split_grad(orig, grad):
 @register_gradient("nn.cross_entropy")
 def cross_entropy_grad(orig, grad):
     x, y = orig.args
-    sm = op.nn.softmax(x)
-    shape = op.shape_of(x)
-    batch_size = op.take(shape, relay.const(0, dtype='int32'), axis=0)
+    sm = softmax(x)
+    shape = shape_of(x)
+    batch_size = take(shape, relay.const(0, dtype='int32'), axis=0)
     grad = grad / batch_size.astype('float32')
-    return [op.sum(y, axis=1) * grad * (sm - y), -grad * op.log(sm)]
+    return [reduce_sum(y, axis=1) * grad * (sm - y), -grad * log(sm)]
