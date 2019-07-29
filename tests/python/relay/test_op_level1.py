@@ -18,7 +18,7 @@ import numpy as np
 import tvm
 from tvm import relay
 from tvm.relay import transform
-from tvm.relay.testing import ctx_list
+from tvm.relay.testing import ctx_list, check_grad
 import topi.testing
 
 def run_infer_type(expr):
@@ -300,6 +300,7 @@ def test_dense():
     "units=2" in y.astext()
     yy = run_infer_type(y)
     assert yy.checked_type == relay.TensorType((n, c, h, 2), "float32")
+    check_grad(yy)
 
     n, c , h, w = tvm.var("n"), tvm.var("c"), tvm.var("h"), 2
     x = relay.var("x", relay.TensorType((n, c, h, w), "float32"))
@@ -308,6 +309,7 @@ def test_dense():
     y = relay.nn.dense(x, w)
     yy = run_infer_type(y)
     assert yy.checked_type == relay.TensorType((n, c, h, ww), "float32")
+    #check_grad(yy)
 
     n, c , h, w = tvm.var("n"), tvm.var("c"), tvm.var("h"), 2
     x = relay.var("x", relay.TensorType((n, c, h, w), "float32"))
@@ -315,6 +317,7 @@ def test_dense():
     y = relay.nn.dense(x, w, units=2)
     yy = run_infer_type(y)
     assert yy.checked_type == relay.TensorType((n, c, h, 2), "float32")
+    #check_grad(yy)
 
     x = relay.var("x", shape=(10, 5))
     w = relay.var("w", shape=(2, 5))
@@ -325,6 +328,7 @@ def test_dense():
     x_data = np.random.rand(10, 5).astype('float32')
     w_data = np.random.rand(2, 5).astype('float32')
     ref_res = np.dot(x_data, w_data.T)
+    #check_grad(func)
 
     for target, ctx in ctx_list():
         intrp1 = relay.create_executor("graph", ctx=ctx, target=target)

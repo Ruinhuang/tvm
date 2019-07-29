@@ -18,7 +18,7 @@ import numpy as np
 import tvm
 from tvm import relay
 from tvm.relay.transform import gradient
-from tvm.relay.testing import ctx_list, run_infer_type
+from tvm.relay.testing import ctx_list, run_infer_type, check_grad
 
 def sigmoid(x):
     one = np.ones_like(x)

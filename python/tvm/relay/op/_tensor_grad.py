@@ -19,7 +19,7 @@
 from __future__ import absolute_import
 from ..expr import const
 from .op import register_gradient
-from .transform import collapse_sum_like, broadcast_to_like, where
+from .transform import collapse_sum_like, broadcast_to_like, where, transpose
 from .tensor import exp, negative, power, less
 from .tensor import zeros_like, ones_like
 from . import nn as _nn
@@ -148,6 +148,7 @@ def clip_grad(orig, grad):
     ones = ones_like(x)
     return [where(less(x, a_mins), zeros, where(less(a_maxs, x), zeros, ones * grad))]
 
+
 @register_gradient("nn.max_pool2d")
 def max_pool2d_grad(orig, grad):
     attrs = orig.attrs
@@ -155,6 +156,7 @@ def max_pool2d_grad(orig, grad):
                                     strides=attrs.strides, padding=attrs.padding,
                                     layout=attrs.layout, ceil_mode=attrs.ceil_mode)
     return [pool_grad]
+
 
 @register_gradient("nn.avg_pool2d")
 def avg_pool2d_grad(orig, grad):
@@ -164,3 +166,10 @@ def avg_pool2d_grad(orig, grad):
                                     layout=attrs.layout, ceil_mode=attrs.ceil_mode,
                                     count_include_pad=attrs.count_include_pad)
     return [pool_grad]
+
+
+@register_gradient("nn.dense")
+def dense_grad(orig, grad):
+    data, weight = orig.args
+    return [collapse_sum_like(_nn.dense(grad, transpose(weight)), data),
+            collapse_sum_like(transpose(_nn.dense(transpose(data), transpose(grad))), weight)]
